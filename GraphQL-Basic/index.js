@@ -1,13 +1,29 @@
 const database = require("./database");
 const { ApolloServer, gql } = require("apollo-server");
 
-// teams는 Team을 반환
 const typeDefs = gql`
+  # teams는 Team을 반환
   type Query {
     teams: [Team]
     team(id: Int): Team
     equipments: [Equipment]
     supplies: [Supply]
+  }
+  type Mutation {
+    insertEquipment(
+      id: String
+      used_by: String
+      count: Int
+      new_or_used: String
+    ): Equipment
+    editEquipment(
+      id: String
+      used_by: String
+      count: Int
+      new_or_used: String
+    ): Equipment
+    # String 인자 id를 받는 deleteEquipment: 삭제된 Equipment를 반환
+    deleteEquipment(id: String): Equipment
   }
   type Team {
     id: Int
@@ -45,6 +61,36 @@ const resolvers = {
       })[0],
     equipments: () => database.equipments,
     supplies: () => database.supplies,
+  },
+  Mutation: {
+    // 추가
+    insertEquipment: (parent, args, context, info) => {
+      database.equipments.push(args);
+      return args;
+    },
+    // 수정
+    editEquipment: (parent, args, context, info) => {
+      return database.equipments
+        .filter((equipment) => {
+          return equipment.id === args.id;
+        })
+        .map((equipment) => {
+          // 객체 수정 ( Object.assign(a, b) 라면 b를 a에 합쳐주고 a를 리턴한다 )
+          Object.assign(equipment, args);
+          // 리턴된 a(equipment)를 최종 리턴
+          return equipment;
+        })[0];
+    },
+    // 삭제
+    deleteEquipment: (parent, args, context, info) => {
+      const deleted = database.equipments.filter((equipment) => {
+        return equipment.id === args.id;
+      })[0];
+      database.equipments = database.equipments.filter((equipment) => {
+        return equipment.id !== args.id;
+      });
+      return deleted;
+    },
   },
 };
 const server = new ApolloServer({ typeDefs, resolvers });
